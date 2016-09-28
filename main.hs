@@ -33,8 +33,6 @@ go :: MainConfig -> IO ()
 go CreateApi{..} = initAWS >>= \ awsEnv -> runResourceT (runAWST awsEnv $ createApi createApiEndpoint lambdaTargetName) >>= print
 go DeleteApi{..} = initAWS >>= \ awsEnv -> runResourceT (runAWST awsEnv $ deleteApi deleteApiEndpoint)
 go BuildLambda{..} = do
-  -- build docker container
-  buildDocker
   -- build executable with docker
   exe <- stackInDocker (ImageName "ghc-centos:lapack") (unpack lambdaSrcDirectory) (unpack lambdaTargetName)
   -- extract supplementary libs...
@@ -42,9 +40,6 @@ go BuildLambda{..} = do
   -- pack executable with js shim in .zip file
   packLambda exe (exe:libs)
     where
-      buildDocker :: IO ()
-      buildDocker = callProcess "docker" ["build", "-t", "ghc-centos:lapack","ghc-centos" ]
-
       packLambda :: FilePath -> [FilePath] -> IO ()
       packLambda exe files = do
         runner <- setMainTo exe <$> readFile "run-tmpl.js"
